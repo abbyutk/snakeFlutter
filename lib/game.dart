@@ -11,6 +11,19 @@ class Game extends StatefulWidget {
   _GameState createState() => _GameState();
 }
 
+
+// ************************************************
+// * Initial variables                            *
+// * x, y is for tracking snake heads position.   *
+// * beat position is a list for storing the posi-*
+// * -tion of snake.                              *
+// * origin is for tacking the swipe gestures.    *
+// * else every variable name specifies well that *
+// * what they are doing                          *
+// * Every function name also specifies well what *
+// * it is doing.                                 *
+// ************************************************
+
 double x = 0;
 double y = 0;
 double canvasHeight = 300;
@@ -25,9 +38,20 @@ int length = 1 ;
 bool gameOver = false;
 int frame = 40;
 int fps = (1/frame * 1000).round();
+List<Offset> beatPositions = [Offset(10,10)];
 
 enum Movements{Up, Down, Left, Right}
  Movements currentMove = Movements.Right ;
+
+// ************************************************
+// * Each time player hit the range food gets con-*
+// * -sumed.                                      *
+// * Doubling speed each time food gets cosumed   *
+// * This function also increase length by 1.     *
+// * origin is for tacking the swipe gestures.    *
+// * Add 5 points and update the ui               *
+// * and get new food location                    *
+// ************************************************
 
 void checkIfFoodConsumed(Size screenSize){
   if(foodX >= beatPositions[0].dx-10 && foodX <= beatPositions[0].dx+10 ){
@@ -35,22 +59,34 @@ void checkIfFoodConsumed(Size screenSize){
       speed+=0.1;
       length++;
       _scoreNotifier.value+=5;
-      beatPositions.add(beatPositions[0]);
+      beatPositions.add(beatPositions[0]); //adding new beat in the list.
       getNewFoodLocation(screenSize);
     }
   }
 }
 
-List<Offset> beatPositions = [Offset(10,10)];
-
+// ************************************************
+// * Generating new food location by using random *
+// * function.                                    *
+// * It also check if the generated food postion  *
+// * is out of the frame and regenarets new       *
+// * location automatically.                      *
+// * Add 5 points and update the ui               *
+// * and get new food location                    *
+// ************************************************
 void getNewFoodLocation(Size screenSize){
   int xLimit = (screenSize.width * 0.98).round();
   int yLimit = (canvasHeight * 0.98).round();
   foodX = Random().nextInt(xLimit) * 1.0 ;
   foodY = Random().nextInt(yLimit) * 1.0;
   if(foodX <= screenSize.width * 0.01 || foodY < screenSize.width * 0.01 ) getNewFoodLocation(screenSize);
-  print("Food location : x : $foodX and Y : $foodY");
 }
+
+
+// ************************************************
+// * Movement Functions wil increase or decrease  *
+// * x, y positions as appropriate to move.       *
+// ************************************************
 
 void moveUp({move = false}){
   if(move)y-=speed;
@@ -64,7 +100,13 @@ void moveLeft({move = false}){
 void moveRight({move = false}){
   if(move)x+=speed;
 }
-
+// ************************************************
+// * Draw() function draws the frames.            *
+// * It also make sure if tehre is gameover or fo-*
+// * -od consumed.                                *
+// * Also calls movement function according to    *
+// * current movement variable.                   *
+// ************************************************
 void draw(Size screenSize){
   checkIfFoodConsumed(screenSize);
       if( x > screenSize.width * 0.97 || x< screenSize.width * 0.01){
@@ -86,9 +128,12 @@ void draw(Size screenSize){
             break;
           default:
       }
-      _canvasNotifier.value+=1;
+      _canvasNotifier.value+=1; //Updating frames using notifier.
 }
 
+// ************************************************
+// * Initialises initial variables.               *
+// ************************************************
 void initBoard(screenSize){
     canvasHeight = screenSize.height * 0.8;
     currentMove = Movements.Right;
@@ -108,11 +153,11 @@ class _GameState extends State<Game> {
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
     initBoard(screenSize);
-    Timer.periodic(Duration(milliseconds: fps), (timer) {
-      if(!_pauseNotifier.value && !gameOver)draw(screenSize);
+    Timer.periodic(Duration(milliseconds: fps), (timer) { //call function/sec accoring to fps.
+      if(!_pauseNotifier.value && !gameOver)draw(screenSize); //dont draw if the gameover or paused.
      });
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton(//pauses the game and restrats too.
         onPressed: (){
           if(_pauseNotifier.value && gameOver){
             initBoard(screenSize);
@@ -122,7 +167,7 @@ class _GameState extends State<Game> {
           valueListenable: _pauseNotifier,
           builder: (context, v , c){
             IconData icon = Icons.play_arrow;
-            if(_pauseNotifier.value && gameOver) icon = Icons.repeat;
+            if(_pauseNotifier.value && gameOver) icon = Icons.replay;
             else if(!_pauseNotifier.value) icon = Icons.pause;
             return Icon(icon,color: Colors.white, size:20);
           },
@@ -131,6 +176,7 @@ class _GameState extends State<Game> {
       body: Stack(
         children: [
           Container(
+            //score widget
             child: ValueListenableBuilder(
               valueListenable: _scoreNotifier,
               builder: (context, v, c) => Text(
@@ -142,6 +188,7 @@ class _GameState extends State<Game> {
             ),
           ),
           ValueListenableBuilder(
+            //gameover widget
             valueListenable: _pauseNotifier,
             builder: (context, v, c)=>Visibility(
             visible: gameOver,
@@ -160,16 +207,19 @@ class _GameState extends State<Game> {
           Container(
             margin: EdgeInsets.only(top: screenSize.height * 0.05),
             child: GestureDetector(
-            // behavior: HitTestBehavior.translucent,
             onVerticalDragUpdate: (update){
+              //check if swipe up or down and updates the currentmovement to the specific move.
               if(origin > update.delta.dy && currentMove != Movements.Down) currentMove = Movements.Up;
               else if(origin < update.delta.dy && currentMove != Movements.Up) currentMove = Movements.Down;
             },
             onHorizontalDragUpdate: (update){
+              //check if swipe left or right and updates the currentmovement to the specific move.
               if(origin > update.delta.dx && currentMove != Movements.Right) currentMove = Movements.Left;
               else if(origin < update.delta.dx && currentMove != Movements.Left) currentMove = Movements.Right;
             },
             child:  ValueListenableBuilder(
+
+              //canvas widget
                valueListenable: _canvasNotifier,
                builder: (context, value, child) => CustomPaint(
                  size: screenSize,
@@ -216,9 +266,12 @@ class CanvasPainter extends CustomPainter{
     }
     canvas.drawCircle(foodOffset, 5,Paint()..color = Colors.green);
   }
-
+// ************************************************
+// * This function draw the current snake beat    *
+// * and pass the positon to its previous beats   *
+// * for appropriate moving effect.               *
+// ************************************************
   Rect snakeBeat(int snakeIndex){
-    Offset o = beatPositions[snakeIndex-1];
     if(beatPositions.length > snakeIndex) beatPositions[snakeIndex] = beatPositions[snakeIndex-1];
      if(snakeIndex == 1)beatPositions[0] = Offset(x,y);
     return beatPositions[snakeIndex-1] & Size(rootSize.width * 0.02, rootSize.width * 0.02);
