@@ -25,7 +25,6 @@ class Game extends StatefulWidget {
 // ************************************************
 
 double x = 0;
-int i = 0;
 double y = 0;
 double canvasHeight = 300;
 double speed = 0.5;
